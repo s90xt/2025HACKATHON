@@ -1,29 +1,31 @@
+<!-- index.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Country Accent Chatbot</title>
-  <link rel="stylesheet" href="style.css">
+    <title>Southern Medical Companion</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <button id="chatButton">Chat with Your Clinical Assistant Now</button>
-  </div>
-
-  <!-- Modal Popup for Chat Interface -->
-  <div id="chatModal" class="modal">
-    <div class="modal-content">
-      <span id="closeModal">&times;</span>
-      <div id="chatArea">
-        <!-- Chat messages will appear here -->
-      </div>
-      <div class="voice-interface">
-        <button id="startVoice">Start Voice Chat</button>
-        <div id="audioWaves"></div>
-      </div>
+    <div class="container">
+        <div class="status-pulse"></div>
+        <div class="chat-interface">
+            <div class="header">
+                <img src="https://i.imgur.com/6Vg5S9O.png" class="logo" alt="Stethoscope Icon">
+                <h1>Bessie Mae</h1>
+                <p>Emergency Medicine Specialist</p>
+            </div>
+            <div id="chatHistory" class="chat-history"></div>
+            <div class="controls">
+                <button id="voiceControl" class="voice-btn">
+                    <i class="fas fa-microphone"></i> 
+                    <span>Start Voice Chat</span>
+                    <div class="sound-waves"></div>
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
