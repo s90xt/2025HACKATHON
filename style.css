@@ -1,66 +1,131 @@
-/* Basic styling and centering */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background: #121212;
-  color: #fff;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* style.css */
+:root {
+    --burnt-orange: #cc5500;
+    --deep-green: #004225;
+    --cream: #fffdd0;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to right, #f5f5dc, #faebd7);
+    font-family: 'Georgia', serif;
 }
 
 .container {
-  text-align: center;
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
 }
 
-#chatButton {
-  padding: 15px 25px;
-  font-size: 18px;
-  cursor: pointer;
+.chat-interface {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    border: 2px solid var(--deep-green);
 }
 
-/* Modal styling */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 100;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.8);
-  justify-content: center;
-  align-items: center;
+.header {
+    background: var(--deep-green);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
 }
 
-.modal-content {
-  background: #1e1e1e;
-  padding: 20px;
-  border-radius: 5px;
-  width: 80%;
-  max-width: 600px;
-  position: relative;
-  text-align: center;
+.logo {
+    width: 60px;
+    margin-bottom: 1rem;
 }
 
-#closeModal {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  cursor: pointer;
-  font-size: 28px;
+.chat-history {
+    height: 400px;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--cream);
 }
 
-/* Voice interface styling */
-.voice-interface {
-  margin-top: 20px;
+.message {
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    animation: slideIn 0.3s ease;
 }
 
-#audioWaves {
-  width: 100%;
-  height: 50px;
-  background: url('wave-animation.gif') center center no-repeat; /* Replace with a working animation or GIF */
-  margin-top: 10px;
+.user-message {
+    background: var(--burnt-orange);
+    color: white;
+    margin-left: 20%;
+}
+
+.bot-message {
+    background: white;
+    border: 1px solid var(--deep-green);
+    margin-right: 20%;
+}
+
+.voice-btn {
+    background: var(--deep-green);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    margin: 20px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.sound-waves {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.3) 20%,
+        transparent 40%
+    );
+    animation: waves 1s infinite linear;
+}
+
+@keyframes waves {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.voice-btn.active {
+    background: var(--burnt-orange);
+}
+
+.voice-btn.active .sound-waves {
+    opacity: 0.3;
+}
+
+.status-pulse {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: rgba(204,85,0,0.1);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+}
+
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
