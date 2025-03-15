@@ -1,8 +1,8 @@
 /* style.css */
 :root {
-    --neon-blue: #00f3ff;
-    --neon-purple: #bc13fe;
-    --dark-bg: linear-gradient(45deg, #0a0a2e, #1a1a4a);
+    --neon-green: #0f0;
+    --neon-blue: #0ff;
+    --cyber-bg: radial-gradient(circle, #00061d 0%, #000 100%);
 }
 
 body {
@@ -11,19 +11,20 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: var(--dark-bg);
-    font-family: 'Segoe UI', sans-serif;
-    color: white;
+    background: var(--cyber-bg);
+    font-family: 'Courier New', monospace;
+    color: var(--neon-green);
+    overflow: hidden;
 }
 
-.container {
+.cyber-container {
     position: relative;
     width: 100%;
     max-width: 800px;
     padding: 2rem;
 }
 
-#soundWave {
+#voiceVisualizer {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -31,71 +32,84 @@ body {
     z-index: 0;
 }
 
-.chat-container {
+.cyber-card {
     position: relative;
-    background: rgba(0,0,0,0.7);
-    border-radius: 20px;
-    border: 2px solid var(--neon-blue);
-    box-shadow: 0 0 30px rgba(0,243,255,0.2);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 15, 30, 0.9);
+    border: 3px solid var(--neon-blue);
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
     z-index: 1;
-    overflow: hidden;
 }
 
-.header {
+.cyber-header {
     text-align: center;
     padding: 2rem;
-    border-bottom: 1px solid var(--neon-purple);
+    border-bottom: 2px solid var(--neon-green);
+    position: relative;
 }
 
-.header h1 {
-    margin: 0;
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px var(--neon-blue);
+.cyber-pulse {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--neon-green);
+    bottom: -2px;
+    animation: pulse 1.5s infinite;
 }
 
-.header p {
-    color: #aaa;
-    margin: 0.5rem 0 0;
+@keyframes pulse {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
-.messages {
+.cyber-chat {
     height: 400px;
     padding: 1rem;
     overflow-y: auto;
+    background: rgba(0, 0, 0, 0.7);
 }
 
 .message {
     margin: 1rem;
     padding: 1rem;
-    border-radius: 15px;
-    background: rgba(255,255,255,0.05);
-    animation: fadeIn 0.3s ease;
+    border-radius: 5px;
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid rgba(0, 255, 255, 0.1);
+    animation: messageEntry 0.3s ease;
 }
 
-@keyframes fadeIn {
+.bot::before {
+    content: "🤠";
+    margin-right: 0.5rem;
+}
+
+@keyframes messageEntry {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.glow-btn {
+.cyber-button {
     background: none;
-    border: 2px solid var(--neon-blue);
-    color: white;
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
     padding: 1rem 2rem;
-    border-radius: 30px;
+    margin: 1rem;
     font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
 }
 
-.glow-btn:hover {
-    background: var(--neon-blue);
-    box-shadow: 0 0 20px var(--neon-blue);
-    color: black;
+.cyber-button:hover {
+    text-shadow: 0 0 10px var(--neon-green);
+    box-shadow: 0 0 15px var(--neon-green);
 }
 
-.controls {
-    padding: 2rem;
-    text-align: center;
+.cyber-button.active {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: #0f0;
 }
