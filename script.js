@@ -1,108 +1,119 @@
-// Open and close the chat modal
-document.getElementById('chatButton').addEventListener('click', function() {
+// WebSocket connection management
+let realtimeConnection;
+let audioQueue = [];
+const OPENAI_API_KEY = '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'; // Replace with actual key
+
+// Enhanced chat modal controls
+document.getElementById('chatButton').addEventListener('click', () => {
   document.getElementById('chatModal').style.display = 'flex';
+  initializeRealtimeConnection();
 });
 
-document.getElementById('closeModal').addEventListener('click', function() {
+document.getElementById('closeModal').addEventListener('click', () => {
   document.getElementById('chatModal').style.display = 'none';
+  realtimeConnection?.close();
 });
 
-// Voice recognition setup using the Web Speech API
-let recognizing = false;
-let recognition;
+// Real-time audio processing using MediaRecorder
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
 
-if ('webkitSpeechRecognition' in window) {
-  recognition = new webkitSpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
+async function initializeRealtimeConnection() {
+  try {
+    realtimeConnection = new WebSocket('wss://api.openai.com/v1/audio/realtime', {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-  recognition.onstart = function() {
-    console.log('Voice recognition started.');
+    realtimeConnection.onmessage = (event) => {
+      const response = JSON.parse(event.data);
+      if (response.audio) {
+        audioQueue.push(response.audio);
+        playNextAudio();
+      }
+      if (response.text) {
+        displayReply(response.text);
+      }
+    };
+
+    realtimeConnection.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+      displayReply("Well butter my biscuit - connection troubles!");
+    };
+
+  } catch (error) {
+    console.error('Connection Error:', error);
+  }
+}
+
+// Audio playback management
+function playNextAudio() {
+  if (audioQueue.length > 0) {
+    const audio = new Audio(`data:audio/wav;base64,${audioQueue.shift()}`);
+    audio.play();
+  }
+}
+
+// Advanced voice capture with Opus encoding
+async function startAudioCapture() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus',
+      bitsPerSecond: 16000
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Data = btoa(String.fromCharCode(...new Uint8Array(reader.result)));
+          realtimeConnection.send(JSON.stringify({
+            audio: base64Data,
+            voice: "country", // Valid options: alloy, echo, fable, onyx, nova, shimmer
+            model: "gpt-4o-realtime-preview",
+            prompt: "You're Dr. Southern Comfort, an ER physician with 20 years experience. Use layman's terms with a warm Southern drawl.",
+            safety_check: true
+          }));
+        };
+        reader.readAsArrayBuffer(event.data);
+      }
+    };
+
+    mediaRecorder.start(500); // Send chunks every 500ms
+    isRecording = true;
     document.getElementById('audioWaves').style.display = 'block';
-  };
 
-  recognition.onerror = function(event) {
-    console.log('Error: ' + event.error);
-  };
-
-  recognition.onend = function() {
-    console.log('Voice recognition ended.');
-    document.getElementById('audioWaves').style.display = 'none';
-  };
-
-  recognition.onresult = function(event) {
-    let transcript = event.results[0][0].transcript;
-    console.log('User said: ', transcript);
-    sendToChatGPT(transcript);
-  };
-} else {
-  alert('Your browser does not support voice recognition.');
+  } catch (error) {
+    console.error('Audio Capture Error:', error);
+  }
 }
 
-// Toggle voice chat on button click
-document.getElementById('startVoice').addEventListener('click', function() {
-  if (!recognizing) {
-    recognition.start();
-    recognizing = true;
-    document.getElementById('startVoice').textContent = 'Stop Voice Chat';
+// Enhanced UI controls
+document.getElementById('startVoice').addEventListener('click', async () => {
+  if (!isRecording) {
+    await startAudioCapture();
+    document.getElementById('startVoice').textContent = 'Stop Consultation';
   } else {
-    recognition.stop();
-    recognizing = false;
-    document.getElementById('startVoice').textContent = 'Start Voice Chat';
+    mediaRecorder?.stop();
+    isRecording = false;
+    document.getElementById('audioWaves').style.display = 'none';
+    document.getElementById('startVoice').textContent = 'Start Consultation';
   }
 });
 
-// Function to call the ChatGPT Advanced Voice Mode API
-function sendToChatGPT(message) {
-  // Replace with the actual API endpoint URL
-  let apiUrl = 'https://api.yourchatgptvoice.com/advanced-voice';
-
-  // Prompt engineering: instruct the API to reply with a country accent and clinical expertise
-  let promptEngineering = "You are a board-certified emergency medicine physician with a warm, empathetic tone and a deep southern accent. Speak friendly and down-to-earth. Advise the user clearly, and if symptoms are severe, tell them to seek urgent care or visit an emergency department.";
-
-  let requestBody = {
-    prompt: promptEngineering + "\nUser: " + message,
-    voiceAccent: "country"  // This parameter is hypothetical; adjust based on the API docs
-    // Add any additional parameters required by the API here
-  };
-
-  fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_API_KEY'  // Replace YOUR_API_KEY with your actual key
-    },
-    body: JSON.stringify(requestBody)
-  })
-  .then(response => response.json())
-  .then(data => {
-    let reply = data.reply || "Well butter my biscuit - technical difficulties!";
-    console.log('ChatGPT reply: ', reply);
-    displayReply(reply);
-    speakText(reply);
-  })
-  .catch(error => {
-    console.log('Error: ', error);
-    displayReply("Well butter my biscuit - technical difficulties!");
-  });
-}
-
-// Function to display the reply in the chat area
-function displayReply(reply) {
-  let chatArea = document.getElementById('chatArea');
-  let replyElement = document.createElement('p');
-  replyElement.textContent = reply;
+// Real-time display updates
+function displayReply(text) {
+  const chatArea = document.getElementById('chatArea');
+  const replyElement = document.createElement('div');
+  replyElement.className = 'response-bubble';
+  replyElement.innerHTML = `
+    <div class="doctor-icon">🏥</div>
+    <div class="response-text">${text}</div>
+  `;
   chatArea.appendChild(replyElement);
-}
-
-// Use text-to-speech to speak the reply back with a slight modification for accent
-function speakText(text) {
-  if ('speechSynthesis' in window) {
-    let utterance = new SpeechSynthesisUtterance(text);
-    // Adjust pitch and rate to give a hint of that country accent if a matching voice isn’t available
-    utterance.pitch = 1.2;
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-  }
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
