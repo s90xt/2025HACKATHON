@@ -1,215 +1,271 @@
-// script.js - Full Working Version
-const OPENAI_API_KEY = 'your-api-key-here'; // Replace with actual key
+// script.js - Enhanced Version
+const OPENAI_API_KEY = 'your-api-key-here';
 let isListening = false;
 let recognition;
 let synthesis;
+let audioContext;
 
-// Medical system prompt with enhanced instructions
-const systemPrompt = `You are Nurse Bessie Mae, a Southern emergency physician with:
-- Medical expertise (ACEP guidelines)
-- Warm country dialect ("Bless your heart", "Sugar, let me tell ya")
-- Cultural awareness of rural healthcare needs
-- Triage protocol:
-  1. ER: Chest pain, stroke signs, major trauma
-  2. Urgent Care: Sprains, minor burns
-  3. Home Care: Colds, minor rashes
-- Always explain medical terms using folksy analogies`;
+// Enhanced system prompt with safety protocols
+const systemPrompt = `You are Nurse Bessie Mae, MD - Emergency Medicine Specialist with:
+- Southern US dialect ("Bless your heart", "Let me think on that")
+- ACEP 2024 triage guidelines
+- Cultural competence for rural populations
+- Strict safety protocols:
+  1. ER: Chest pain, stroke symptoms, trauma
+  2. Urgent Care: Sprains, minor injuries
+  3. Home Care: Colds, rashes
+- Medical analogies using farming references`;
 
-// 1. Initialize voice recognition with error handling
-function initializeVoice() {
+// 1. Audio visualization initialization
+function initAudioContext() {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            const source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+            visualizeAudio(analyser);
+        })
+        .catch(err => {
+            console.error('Audio setup failed:', err);
+            addSystemMessage("Microphone access required for voice features");
+        });
+}
+
+// 2. Modern audio visualization
+function visualizeAudio(analyser) {
+    const canvas = document.getElementById('voiceVisualizer');
+    const ctx = canvas.getContext('2d');
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function draw() {
+        if (!isListening) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        ctx.fillStyle = 'rgba(18, 18, 29, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#00f3ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for(let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height/2;
+
+            if(i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            
+            x += sliceWidth;
+        }
+
+        ctx.stroke();
+        requestAnimationFrame(draw);
+    }
+
+    draw();
+}
+
+// 3. Enhanced voice recognition
+function initVoiceRecognition() {
     try {
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.continuous = true;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
 
         recognition.onresult = async (event) => {
             const transcript = event.results[event.results.length-1][0].transcript;
-            addMessage(transcript, 'user');
-            console.log('User said:', transcript);
-            await processQuery(transcript);
+            addMessage(transcript, 'user', true);
+            await processMedicalQuery(transcript);
         };
 
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            addMessage("Dagnabbit! My ears aren't workin' right", 'bot');
-            recognition.stop();
-            toggleVoiceUI(false);
-        };
-
-        // Initialize speech synthesis
-        synthesis = window.speechSynthesis;
-        console.log('Speech synthesis supported:', synthesis !== undefined);
+        recognition.onerror = handleRecognitionError;
 
     } catch (error) {
-        console.error('Voice initialization failed:', error);
-        addMessage("Well butter my biscuit! Voice features aren't available", 'bot');
+        console.error('Recognition init failed:', error);
+        addSystemMessage("Voice features unavailable in this browser");
     }
 }
 
-// 2. Enhanced API communication with debugging
-async function processQuery(query) {
+// 4. Robust API communication
+async function processMedicalQuery(query) {
     try {
-        console.log('Starting API request...');
-        const startTime = Date.now();
+        showLoadingState(true);
         
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'X-Request-ID': crypto.randomUUID()
             },
             body: JSON.stringify({
                 model: "gpt-4",
                 messages: [
-                    { role: "system", content: systemPrompt },
+                    { 
+                        role: "system", 
+                        content: systemPrompt,
+                        temperature: 0.7,
+                        max_tokens: 150
+                    },
                     { role: "user", content: query }
-                ],
-                temperature: 0.7,
-                max_tokens: 150
+                ]
             })
         });
 
-        console.log(`API response time: ${Date.now() - startTime}ms`);
-        console.log('Response status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('API Error Details:', errorData);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('API Response:', data);
-        
-        const reply = data.choices[0].message.content;
-        addMessage(reply, 'bot');
-        speakResponse(reply);
+        const data = await parseResponse(response);
+        handleAPIResponse(data);
 
     } catch (error) {
-        console.error('Full Error Chain:', error);
-        addMessage("Well butter my biscuit! Let's try that again", 'bot');
+        handleAPIError(error);
+    } finally {
+        showLoadingState(false);
     }
 }
 
-// 3. Robust speech synthesis with fallback
+// 5. Response handling utilities
+async function parseResponse(response) {
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API ${response.status}: ${errorData.error?.message}`);
+    }
+    return response.json();
+}
+
+function handleAPIResponse(data) {
+    const reply = data.choices[0].message.content;
+    addMessage(reply, 'bot', true);
+    speakResponse(reply);
+    logInteraction('success');
+}
+
+function handleAPIError(error) {
+    console.error('API Error:', error);
+    addSystemMessage("Connection issues - trying backup protocol...");
+    logInteraction('failure');
+    attemptFallback();
+}
+
+// 6. Enhanced speech synthesis
 function speakResponse(text) {
-    try {
+    return new Promise((resolve) => {
         if (!synthesis) {
-            throw new Error('Speech synthesis not supported');
+            addMessage(text, 'bot');
+            return resolve();
         }
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 0.8;
-
-        // Voice selection logic
-        const voices = synthesis.getVoices();
-        const preferredVoices = [
-            'Microsoft Zira Desktop', 
-            'Google US English',
-            'Alex'
-        ];
+        configureVoice(utterance);
         
-        const voice = voices.find(v => preferredVoices.includes(v.name)) || voices[0];
-        if (voice) {
-            utterance.voice = voice;
-            utterance.lang = 'en-US';
-        }
-
-        synthesis.speak(utterance);
-
+        utterance.onend = resolve;
         utterance.onerror = (event) => {
-            console.error('Speech synthesis error:', event.error);
-            addMessage("Can't speak right now, sugar", 'bot');
+            console.error('Speech error:', event.error);
+            resolve();
         };
 
-    } catch (error) {
-        console.error('Speech failed:', error);
-        addMessage(text, 'bot'); // Fallback to text display
+        synthesis.speak(utterance);
+    });
+}
+
+function configureVoice(utterance) {
+    const voices = synthesis.getVoices();
+    const voicePriorities = [
+        'Microsoft Zira', 
+        'Google US English',
+        'English (America)'
+    ];
+
+    utterance.rate = 0.92;
+    utterance.pitch = 0.85;
+    utterance.volume = 1.2;
+
+    const selectedVoice = voices.find(v => voicePriorities.includes(v.name)) || voices[0];
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        utterance.lang = 'en-US';
     }
 }
 
-// 4. UI control with state management
-function toggleVoiceUI(active) {
-    isListening = active;
-    const button = document.getElementById('voiceControl');
-    button.classList.toggle('active', active);
-    button.innerHTML = active ? 
-        '<i class="fas fa-microphone-slash"></i> Stop Listening' : 
-        '<i class="fas fa-microphone"></i> Start Listening';
+// 7. UI state management
+function showLoadingState(loading) {
+    document.querySelectorAll('.message-bot').lastElementChild?.classList.toggle('thinking', loading);
+    document.getElementById('voiceControl').classList.toggle('processing', loading);
 }
 
-// 5. Message handling with sanitization
-function addMessage(text, sender) {
-    const chatHistory = document.getElementById('chatHistory');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
+function addMessage(text, sender, isVoice = false) {
+    const chat = document.getElementById('chatHistory');
+    const message = document.createElement('div');
     
-    // Basic sanitization
-    const cleanText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    messageDiv.innerHTML = `
+    message.className = `message message-${sender} ${isVoice ? 'voice' : 'text'}`;
+    message.innerHTML = `
         <div class="message-bubble">
-            ${sender === 'bot' ? '🤠 ' : ''}${cleanText}
+            ${sender === 'bot' ? '<div class="bot-indicator"></div>' : ''}
+            ${escapeHTML(text)}
+            ${sender === 'bot' ? '<div class="response-loader"></div>' : ''}
         </div>
     `;
-    
-    chatHistory.appendChild(messageDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    chat.appendChild(message);
+    chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 }
 
-// 6. Voice control with safety checks
+function escapeHTML(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 8. Voice control core
 document.getElementById('voiceControl').addEventListener('click', async () => {
     if (!isListening) {
         try {
-            // Request microphone permission first
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            
-            initializeVoice();
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            initVoiceRecognition();
             recognition.start();
-            toggleVoiceUI(true);
-            
+            isListening = true;
+            updateUIVisuals(true);
         } catch (error) {
-            console.error('Microphone access denied:', error);
-            addMessage("Need microphone access to hear ya, sugar", 'bot');
-            toggleVoiceUI(false);
+            handleRecognitionError(error);
         }
     } else {
         recognition.stop();
-        toggleVoiceUI(false);
+        isListening = false;
+        updateUIVisuals(false);
     }
 });
 
-// 7. Connection test function
-async function testAPIConnection() {
-    try {
-        console.log('Testing API connection...');
-        const response = await fetch('https://api.openai.com/v1/models', {
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            }
-        });
-        
-        if (response.ok) {
-            console.log('API Connection Successful');
-            return true;
-        }
-        console.log('API Connection Failed:', response.status);
-        return false;
-        
-    } catch (error) {
-        console.error('Connection Test Error:', error);
-        return false;
-    }
+function updateUIVisuals(listening) {
+    const button = document.getElementById('voiceControl');
+    button.classList.toggle('active', listening);
+    button.innerHTML = listening ? 
+        '<i class="fas fa-microphone-slash"></i> Stop Listening' : 
+        '<i class="fas fa-microphone"></i> Start Consultation';
 }
 
-// Initialize when page loads
+// 9. System initialization
+function initApplication() {
+    synthesis = window.speechSynthesis;
+    initAudioContext();
+    
+    if (!synthesis) {
+        addSystemMessage("Voice responses unavailable - text only mode");
+    }
+
+    window.speechSynthesis.onvoiceschanged = () => {
+        console.log('Voices updated:', synthesis.getVoices());
+    };
+}
+
+// 10. Start application
 window.addEventListener('load', () => {
-    console.log('Initializing application...');
-    testAPIConnection().then(success => {
-        if (!success) {
-            addMessage("Technical difficulties, sugar. Try refreshin' the page", 'bot');
-        }
-    });
+    initApplication();
+    addMessage("Howdy friend! What brings you in today?", 'bot');
 });
