@@ -2,31 +2,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MediFriend - Southern Care Companion</title>
+    <title>Southern Medical Companion</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="cyber-container">
-        <canvas id="voiceVisualizer"></canvas>
-        <div class="cyber-card">
-            <div class="cyber-header">
-                <h1><i class="fas fa-user-md"></i> Nurse Jed</h1>
+    <div class="container">
+        <div class="status-pulse"></div>
+        <div class="chat-interface">
+            <div class="header">
+                <img src="https://i.imgur.com/6Vg5S9O.png" class="logo" alt="Stethoscope Icon">
+                <h1>Dr. Jud</h1>
                 <p>Emergency Medicine Specialist</p>
-                <div class="cyber-pulse"></div>
             </div>
-            <div id="chatWindow" class="cyber-chat">
-                <div class="message bot">Howdy friend! I'm Nurse Jed, your medical partner from Alabama. What's troublin' ya today?</div>
-            </div>
-            <div class="cyber-controls">
-                <button id="voiceControl" class="cyber-button">
-                    <i class="fas fa-microphone"></i> Start Voice Chat
+            <div id="chatHistory" class="chat-history"></div>
+            <div class="controls">
+                <button id="voiceControl" class="voice-btn">
+                    <i class="fas fa-microphone"></i> 
+                    <span>Start Voice Chat</span>
+                    <div class="sound-waves"></div>
                 </button>
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/openai@3.0.0/dist/openai.min.js"></script>
 </body>
 </html>
