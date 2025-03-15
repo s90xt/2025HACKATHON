@@ -1,215 +1,108 @@
-// script.js - Full Working Version
-const OPENAI_API_KEY = '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'; // Replace with actual key
-let isListening = false;
+// Open and close the chat modal
+document.getElementById('chatButton').addEventListener('click', function() {
+  document.getElementById('chatModal').style.display = 'flex';
+});
+
+document.getElementById('closeModal').addEventListener('click', function() {
+  document.getElementById('chatModal').style.display = 'none';
+});
+
+// Voice recognition setup using the Web Speech API
+let recognizing = false;
 let recognition;
-let synthesis;
 
-// Medical system prompt with enhanced instructions
-const systemPrompt = `You are Nurse Bessie Mae, a Southern emergency physician with:
-- Medical expertise (ACEP guidelines)
-- Warm country dialect ("Bless your heart", "Sugar, let me tell ya")
-- Cultural awareness of rural healthcare needs
-- Triage protocol:
-  1. ER: Chest pain, stroke signs, major trauma
-  2. Urgent Care: Sprains, minor burns
-  3. Home Care: Colds, minor rashes
-- Always explain medical terms using folksy analogies`;
+if ('webkitSpeechRecognition' in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
 
-// 1. Initialize voice recognition with error handling
-function initializeVoice() {
-    try {
-        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+  recognition.onstart = function() {
+    console.log('Voice recognition started.');
+    document.getElementById('audioWaves').style.display = 'block';
+  };
 
-        recognition.onresult = async (event) => {
-            const transcript = event.results[event.results.length-1][0].transcript;
-            addMessage(transcript, 'user');
-            console.log('User said:', transcript);
-            await processQuery(transcript);
-        };
+  recognition.onerror = function(event) {
+    console.log('Error: ' + event.error);
+  };
 
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            addMessage("Dagnabbit! My ears aren't workin' right", 'bot');
-            recognition.stop();
-            toggleVoiceUI(false);
-        };
+  recognition.onend = function() {
+    console.log('Voice recognition ended.');
+    document.getElementById('audioWaves').style.display = 'none';
+  };
 
-        // Initialize speech synthesis
-        synthesis = window.speechSynthesis;
-        console.log('Speech synthesis supported:', synthesis !== undefined);
-
-    } catch (error) {
-        console.error('Voice initialization failed:', error);
-        addMessage("Well butter my biscuit! Voice features aren't available", 'bot');
-    }
+  recognition.onresult = function(event) {
+    let transcript = event.results[0][0].transcript;
+    console.log('User said: ', transcript);
+    sendToChatGPT(transcript);
+  };
+} else {
+  alert('Your browser does not support voice recognition.');
 }
 
-// 2. Enhanced API communication with debugging
-async function processQuery(query) {
-    try {
-        console.log('Starting API request...');
-        const startTime = Date.now();
-        
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: query }
-                ],
-                temperature: 0.7,
-                max_tokens: 150
-            })
-        });
-
-        console.log(`API response time: ${Date.now() - startTime}ms`);
-        console.log('Response status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('API Error Details:', errorData);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('API Response:', data);
-        
-        const reply = data.choices[0].message.content;
-        addMessage(reply, 'bot');
-        speakResponse(reply);
-
-    } catch (error) {
-        console.error('Full Error Chain:', error);
-        addMessage("Well butter my biscuit! Let's try that again", 'bot');
-    }
-}
-
-// 3. Robust speech synthesis with fallback
-function speakResponse(text) {
-    try {
-        if (!synthesis) {
-            throw new Error('Speech synthesis not supported');
-        }
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 0.8;
-
-        // Voice selection logic
-        const voices = synthesis.getVoices();
-        const preferredVoices = [
-            'Microsoft Zira Desktop', 
-            'Google US English',
-            'Alex'
-        ];
-        
-        const voice = voices.find(v => preferredVoices.includes(v.name)) || voices[0];
-        if (voice) {
-            utterance.voice = voice;
-            utterance.lang = 'en-US';
-        }
-
-        synthesis.speak(utterance);
-
-        utterance.onerror = (event) => {
-            console.error('Speech synthesis error:', event.error);
-            addMessage("Can't speak right now, sugar", 'bot');
-        };
-
-    } catch (error) {
-        console.error('Speech failed:', error);
-        addMessage(text, 'bot'); // Fallback to text display
-    }
-}
-
-// 4. UI control with state management
-function toggleVoiceUI(active) {
-    isListening = active;
-    const button = document.getElementById('voiceControl');
-    button.classList.toggle('active', active);
-    button.innerHTML = active ? 
-        '<i class="fas fa-microphone-slash"></i> Stop Listening' : 
-        '<i class="fas fa-microphone"></i> Start Listening';
-}
-
-// 5. Message handling with sanitization
-function addMessage(text, sender) {
-    const chatHistory = document.getElementById('chatHistory');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
-    
-    // Basic sanitization
-    const cleanText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    messageDiv.innerHTML = `
-        <div class="message-bubble">
-            ${sender === 'bot' ? '🤠 ' : ''}${cleanText}
-        </div>
-    `;
-    
-    chatHistory.appendChild(messageDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-
-// 6. Voice control with safety checks
-document.getElementById('voiceControl').addEventListener('click', async () => {
-    if (!isListening) {
-        try {
-            // Request microphone permission first
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            
-            initializeVoice();
-            recognition.start();
-            toggleVoiceUI(true);
-            
-        } catch (error) {
-            console.error('Microphone access denied:', error);
-            addMessage("Need microphone access to hear ya, sugar", 'bot');
-            toggleVoiceUI(false);
-        }
-    } else {
-        recognition.stop();
-        toggleVoiceUI(false);
-    }
+// Toggle voice chat on button click
+document.getElementById('startVoice').addEventListener('click', function() {
+  if (!recognizing) {
+    recognition.start();
+    recognizing = true;
+    document.getElementById('startVoice').textContent = 'Stop Voice Chat';
+  } else {
+    recognition.stop();
+    recognizing = false;
+    document.getElementById('startVoice').textContent = 'Start Voice Chat';
+  }
 });
 
-// 7. Connection test function
-async function testAPIConnection() {
-    try {
-        console.log('Testing API connection...');
-        const response = await fetch('https://api.openai.com/v1/models', {
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            }
-        });
-        
-        if (response.ok) {
-            console.log('API Connection Successful');
-            return true;
-        }
-        console.log('API Connection Failed:', response.status);
-        return false;
-        
-    } catch (error) {
-        console.error('Connection Test Error:', error);
-        return false;
-    }
+// Function to call the ChatGPT Advanced Voice Mode API
+function sendToChatGPT(message) {
+  // Replace with the actual API endpoint URL
+  let apiUrl = 'https://api.yourchatgptvoice.com/advanced-voice';
+
+  // Prompt engineering: instruct the API to reply with a country accent and clinical expertise
+  let promptEngineering = "You are a board-certified emergency medicine physician with a warm, empathetic tone and a deep southern accent. Speak friendly and down-to-earth. Advise the user clearly, and if symptoms are severe, tell them to seek urgent care or visit an emergency department.";
+
+  let requestBody = {
+    prompt: promptEngineering + "\nUser: " + message,
+    voiceAccent: "country"  // This parameter is hypothetical; adjust based on the API docs
+    // Add any additional parameters required by the API here
+  };
+
+  fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_API_KEY'  // Replace YOUR_API_KEY with your actual key
+    },
+    body: JSON.stringify(requestBody)
+  })
+  .then(response => response.json())
+  .then(data => {
+    let reply = data.reply || "Well butter my biscuit - technical difficulties!";
+    console.log('ChatGPT reply: ', reply);
+    displayReply(reply);
+    speakText(reply);
+  })
+  .catch(error => {
+    console.log('Error: ', error);
+    displayReply("Well butter my biscuit - technical difficulties!");
+  });
 }
 
-// Initialize when page loads
-window.addEventListener('load', () => {
-    console.log('Initializing application...');
-    testAPIConnection().then(success => {
-        if (!success) {
-            addMessage("Technical difficulties, sugar. Try refreshin' the page", 'bot');
-        }
-    });
-});
+// Function to display the reply in the chat area
+function displayReply(reply) {
+  let chatArea = document.getElementById('chatArea');
+  let replyElement = document.createElement('p');
+  replyElement.textContent = reply;
+  chatArea.appendChild(replyElement);
+}
+
+// Use text-to-speech to speak the reply back with a slight modification for accent
+function speakText(text) {
+  if ('speechSynthesis' in window) {
+    let utterance = new SpeechSynthesisUtterance(text);
+    // Adjust pitch and rate to give a hint of that country accent if a matching voice isn’t available
+    utterance.pitch = 1.2;
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }
+}
