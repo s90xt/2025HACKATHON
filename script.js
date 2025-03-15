@@ -1,4 +1,4 @@
-const API_KEY = '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';
+const API_KEY = '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';
 const API_URL = 'https://api.openai.com/v1/chat/completions';
 
 const chatOutput = document.getElementById('chat-output');
