@@ -1,8 +1,8 @@
 /* style.css */
 :root {
-    --neon-green: #0f0;
-    --neon-blue: #0ff;
-    --cyber-bg: radial-gradient(circle, #00061d 0%, #000 100%);
+    --burnt-orange: #cc5500;
+    --deep-green: #004225;
+    --cream: #fffdd0;
 }
 
 body {
@@ -11,105 +11,121 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: var(--cyber-bg);
-    font-family: 'Courier New', monospace;
-    color: var(--neon-green);
+    background: linear-gradient(to right, #f5f5dc, #faebd7);
+    font-family: 'Georgia', serif;
+}
+
+.container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.chat-interface {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.1);
     overflow: hidden;
+    border: 2px solid var(--deep-green);
 }
 
-.cyber-container {
-    position: relative;
-    width: 100%;
-    max-width: 800px;
+.header {
+    background: var(--deep-green);
+    color: white;
     padding: 2rem;
-}
-
-#voiceVisualizer {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    opacity: 0.3;
-    z-index: 0;
-}
-
-.cyber-card {
-    position: relative;
-    background: rgba(0, 15, 30, 0.9);
-    border: 3px solid var(--neon-blue);
-    border-radius: 10px;
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
-    backdrop-filter: blur(5px);
-    z-index: 1;
-}
-
-.cyber-header {
     text-align: center;
-    padding: 2rem;
-    border-bottom: 2px solid var(--neon-green);
     position: relative;
 }
 
-.cyber-pulse {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: var(--neon-green);
-    bottom: -2px;
-    animation: pulse 1.5s infinite;
+.logo {
+    width: 60px;
+    margin-bottom: 1rem;
 }
 
-@keyframes pulse {
-    0% { opacity: 0; }
-    50% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-.cyber-chat {
+.chat-history {
     height: 400px;
-    padding: 1rem;
+    padding: 20px;
     overflow-y: auto;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--cream);
 }
 
 .message {
-    margin: 1rem;
-    padding: 1rem;
-    border-radius: 5px;
-    background: rgba(0, 255, 255, 0.05);
-    border: 1px solid rgba(0, 255, 255, 0.1);
-    animation: messageEntry 0.3s ease;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    animation: slideIn 0.3s ease;
 }
 
-.bot::before {
-    content: "🤠";
-    margin-right: 0.5rem;
+.user-message {
+    background: var(--burnt-orange);
+    color: white;
+    margin-left: 20%;
 }
 
-@keyframes messageEntry {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.bot-message {
+    background: white;
+    border: 1px solid var(--deep-green);
+    margin-right: 20%;
 }
 
-.cyber-button {
-    background: none;
-    border: 2px solid var(--neon-green);
-    color: var(--neon-green);
-    padding: 1rem 2rem;
-    margin: 1rem;
+.voice-btn {
+    background: var(--deep-green);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    margin: 20px;
+    border-radius: 30px;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.cyber-button:hover {
-    text-shadow: 0 0 10px var(--neon-green);
-    box-shadow: 0 0 15px var(--neon-green);
+.sound-waves {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.3) 20%,
+        transparent 40%
+    );
+    animation: waves 1s infinite linear;
 }
 
-.cyber-button.active {
-    background: rgba(0, 255, 0, 0.1);
-    border-color: #0f0;
+@keyframes waves {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.voice-btn.active {
+    background: var(--burnt-orange);
+}
+
+.voice-btn.active .sound-waves {
+    opacity: 0.3;
+}
+
+.status-pulse {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: rgba(204,85,0,0.1);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+}
+
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
