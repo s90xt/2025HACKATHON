@@ -1,79 +1,43 @@
 // script.js
 const OPENAI_API_KEY = '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';
-let recognition;
 let isListening = false;
-let audioContext;
-let analyser;
+let recognition;
+let synthesis;
 
-// Medical system prompt
-const systemPrompt = `You are Nurse Jed, a Southern emergency physician with:
+// Medical system prompt with accent instructions
+const systemPrompt = `You are Dr. Jud, a Southern emergency physician with:
 - Medical expertise (ACEP guidelines)
-- Warm country dialect ("Bless your heart", "Ain't that somethin'")
-- Cultural sensitivity for medical distrust
+- Warm country dialect ("Bless your heart", "Sugar, let me tell ya")
+- Cultural awareness of rural healthcare needs
 - Triage protocol:
-  1️⃣ ER: Chest pain, stroke signs, major trauma
-  2️⃣ Urgent Care: Sprains, minor burns
-  3️⃣ Home Care: Colds, rashes
-- Always explain medical terms in plain language`;
+  1. ER: Chest pain, stroke signs, major trauma
+  2. Urgent Care: Sprains, minor burns
+  3. Home Care: Colds, minor rashes
+- Always explain medical terms using folksy analogies`;
 
-// Initialize voice recognition
-function initVoice() {
-    recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+function initializeVoice() {
+    // Speech recognition
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
 
+    // Speech synthesis
+    synthesis = window.speechSynthesis;
+    
     recognition.onresult = async (event) => {
-        const transcript = Array.from(event.results)
-            .map(result => result[0].transcript)
-            .join('');
-        
-        if (event.results[0].isFinal) {
-            await processMedicalQuery(transcript);
-        }
+        const transcript = event.results[event.results.length-1][0].transcript;
+        addMessage(transcript, 'user');
+        await processQuery(transcript);
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Recognition error:', event.error);
+        addMessage("Dagnabbit! My ears aren't workin' right", 'bot');
     };
 }
 
-// Initialize audio visualization
-function initVisualizer() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            const source = audioContext.createMediaStreamSource(stream);
-            source.connect(analyser);
-            visualizeVoice();
-        });
-}
-
-// Voice visualization
-function visualizeVoice() {
-    const canvas = document.getElementById('voiceVisualizer');
-    const ctx = canvas.getContext('2d');
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        if (!isListening) return;
-        
-        analyser.getByteFrequencyData(dataArray);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        dataArray.forEach((value, i) => {
-            ctx.fillStyle = `hsl(${i * 2}, 100%, 50%)`;
-            ctx.fillRect(i * 3, canvas.height - value, 2, value);
-        });
-
-        requestAnimationFrame(draw);
-    }
-    
-    draw();
-}
-
-// Process medical queries
-async function processMedicalQuery(query) {
-    addMessage(query, 'user');
-    
+async function processQuery(query) {
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -87,42 +51,60 @@ async function processMedicalQuery(query) {
                     { role: "system", content: systemPrompt },
                     { role: "user", content: query }
                 ],
-                temperature: 0.7
+                temperature: 0.7,
+                max_tokens: 150
             })
         });
 
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
         const data = await response.json();
         const reply = data.choices[0].message.content;
         addMessage(reply, 'bot');
         speakResponse(reply);
     } catch (error) {
-        addMessage("Well butter my biscuit - technical difficulties!", 'bot');
+        console.error('API Error:', error);
+        addMessage("Well butter my biscuit! Technical troubles, sugar", 'bot');
     }
 }
 
-// Text-to-speech with accent
 function speakResponse(text) {
     const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Configure Southern accent
     utterance.rate = 0.9;
     utterance.pitch = 0.8;
-    speechSynthesis.speak(utterance);
+    utterance.volume = 1;
+    
+    // Select a voice with Southern characteristics
+    const voices = synthesis.getVoices();
+    const southernVoice = voices.find(v => v.name.includes('Microsoft Zira')) || 
+                         voices.find(v => v.lang === 'en-US');
+    
+    if (southernVoice) {
+        utterance.voice = southernVoice;
+        utterance.lang = 'en-US';
+    }
+
+    synthesis.speak(utterance);
 }
 
-// UI functions
 function addMessage(text, sender) {
-    const chatWindow = document.getElementById('chatWindow');
+    const chatHistory = document.getElementById('chatHistory');
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
-    messageDiv.textContent = text;
-    chatWindow.appendChild(messageDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    messageDiv.className = `message ${sender}-message`;
+    messageDiv.innerHTML = `
+        <div class="message-bubble">
+            ${sender === 'bot' ? '🤠 ' : ''}${text}
+        </div>
+    `;
+    chatHistory.appendChild(messageDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// Voice control
 document.getElementById('voiceControl').addEventListener('click', () => {
     if (!isListening) {
-        initVoice();
-        initVisualizer();
+        initializeVoice();
         recognition.start();
         isListening = true;
         document.getElementById('voiceControl').classList.add('active');
@@ -133,10 +115,8 @@ document.getElementById('voiceControl').addEventListener('click', () => {
     }
 });
 
-// Initial setup
-window.onload = () => {
-    // Set canvas size
-    const canvas = document.getElementById('voiceVisualizer');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+// Initialize speech synthesis voices
+window.speechSynthesis.onvoiceschanged = () => {
+    const voices = window.speechSynthesis.getVoices();
+    console.log('Available voices:', voices);
 };
