@@ -1,0 +1,23 @@
+name: Deploy App
+
+on:
+  push:
+    branches:
+      - main  # Runs when you push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Set OpenAI API Key
+        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+
+      - name: Deploy to Hosting
+        run: npm run deploy  # Change this based on your hosting service
