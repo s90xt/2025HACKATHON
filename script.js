@@ -5,6 +5,19 @@ const chatMessages = document.getElementById("chatMessages");
 const voiceButton = document.getElementById("voiceButton");
 const canvas = document.getElementById("waveVisualizer");
 const ctx = canvas.getContext("2d");
+let audioContext;
+let analyser;
+let microphone;
+let dataArray;
+
+// Initialize Audio Context for Sound Waves
+function initAudioVisualization() {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+}
 
 // Initialize Voice Recognition
 function initVoiceRecognition() {
@@ -23,21 +36,37 @@ function initVoiceRecognition() {
     recognition.onerror = (event) => {
         addMessage("Voice error: " + event.error, "system");
     };
+
+    recognition.onend = () => {
+        stopListening();
+    };
 }
 
 // Start or Stop Voice Chat
-voiceButton.addEventListener("click", () => {
+voiceButton.addEventListener("click", async () => {
     if (!isListening) {
-        recognition.start();
-        isListening = true;
-        voiceButton.textContent = "🛑 Stop Listening";
-        animateWave();
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+            });
+            recognition.start();
+            isListening = true;
+            voiceButton.textContent = "🛑 Stop Listening";
+            animateWave();
+        } catch (error) {
+            addMessage("Microphone access denied.", "system");
+        }
     } else {
-        recognition.stop();
-        isListening = false;
-        voiceButton.textContent = "🎙 Start Voice Chat";
+        stopListening();
     }
 });
+
+function stopListening() {
+    recognition.stop();
+    isListening = false;
+    voiceButton.textContent = "🎙 Start Voice Chat";
+}
 
 // Send Query to OpenAI API
 async function processMedicalQuery(query) {
@@ -87,20 +116,23 @@ function speakResponse(text) {
 
 // Visualize Sound Waves
 function animateWave() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#00f3ff";
-    let bars = 50;
-    let width = canvas.width / bars;
-    let draw = () => {
+    function draw() {
+        analyser.getByteFrequencyData(dataArray);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#00f3ff";
+        let bars = 50;
+        let width = canvas.width / bars;
         for (let i = 0; i < bars; i++) {
-            let height = Math.random() * canvas.height;
+            let height = (dataArray[i] / 255) * canvas.height;
             ctx.fillRect(i * width, canvas.height - height, width - 2, height);
         }
         if (isListening) requestAnimationFrame(draw);
-    };
+    }
     draw();
 }
 
 // Initialize System
-window.addEventListener("load", initVoiceRecognition);
+window.addEventListener("load", () => {
+    initAudioVisualization();
+    initVoiceRecognition();
+});
