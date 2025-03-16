@@ -1,65 +1,23 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediGuide AI</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>MediGuide AI - Voice Assistant</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="cyber-glass-container">
-        <div class="holographic-header">
-            <div class="neon-pulse"></div>
-            <h1 class="gradient-text">MediGuide<span>AI</span></h1>
-            <p>Advanced Clinical Support System</p>
-        </div>
+    <div class="chat-container">
+        <h1 class="title">MediGuide<span> AI</span></h1>
+        <p class="subtitle">Advanced Clinical Support System</p>
         
-        <div class="bento-grid">
-            <div class="chat-container">
-                <div class="message-stream">
-                    <div class="bot-message floating">
-                        <div class="avatar-pulse">
-                            <div class="neon-dot"></div>
-                            <svg class="neuro-avatar" viewBox="0 0 100 100">
-                                <path d="M50 15A35 35 0 1 0 50 85A35 35 0 1 0 50 15Z" fill="#00f3ff20"/>
-                                <path d="M50 30L70 50L50 70L30 50Z" fill="none" stroke="#00f3ff" stroke-width="2"/>
-                            </svg>
-                        </div>
-                        <div class="message-content">
-                            <p>Howdy partner, I'm Dr. Ellis. What brings you in today?</p>
-                            <div class="response-loader">
-                                <div class="wave"></div>
-                                <div class="wave"></div>
-                                <div class="wave"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="input-hud">
-                    <button class="cyber-button voice-toggle">
-                        <i class="fas fa-microphone"></i>
-                        <div class="sonar-wave"></div>
-                    </button>
-                    <div class="neu-input">
-                        <input type="text" placeholder="Describe your symptoms...">
-                        <div class="input-glow"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="info-panel">
-                <div class="bio-card">
-                    <h3>Dr. Ellis Whitaker, MD</h3>
-                    <p>Board Certified Emergency Medicine</p>
-                    <div class="credentials">
-                        <span><i class="fas fa-stethoscope"></i> 18 years experience</span>
-                        <span><i class="fas fa-hospital"></i> Vanderbilt Medical Center</span>
-                    </div>
-                </div>
-            </div>
+        <div class="chat-box" id="chatBox">
+            <div class="chat-messages" id="chatMessages"></div>
+        </div>
+
+        <div class="controls">
+            <button id="voiceButton" class="voice-btn">🎙 Start Voice Chat</button>
+            <canvas id="waveVisualizer"></canvas>
         </div>
     </div>
 
