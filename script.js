@@ -1,4 +1,4 @@
-const OPENAI_API_KEY = 'your-api-key-here';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "placeholder-key-for-local-dev";
 let isListening = false;
 let recognition;
 const chatMessages = document.getElementById("chatMessages");
