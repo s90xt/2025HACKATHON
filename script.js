@@ -9,7 +9,7 @@ let analyser;
 let microphone;
 let dataArray;
 
-const OPENAI_API_URL = "https://your-backend-endpoint.com/api/openai"; // Replace with your API endpoint
+const OPENAI_API_URL = "http://127.0.0.1:5000/api/openai"; // Replace with your API endpoint
 
 // Get dialect parameter from the URL (from landing page)
 const urlParams = new URLSearchParams(window.location.search);
