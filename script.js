@@ -1,8 +1,3 @@
-import fs from "fs";
-import path from "path";
-import OpenAI from "openai";
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "fallback-api-key-for-local-dev";
 let isListening = false;
 let recognition;
 const chatMessages = document.getElementById("chatMessages");
@@ -14,10 +9,7 @@ let analyser;
 let microphone;
 let dataArray;
 
-// Initialize OpenAI Client
-const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY,
-});
+const OPENAI_API_URL = "/api/openai"; // Backend proxy endpoint to OpenAI
 
 // Initialize Audio Context for Sound Waves
 function initAudioVisualization() {
@@ -77,21 +69,22 @@ function stopListening() {
     voiceButton.textContent = "🎙 Start Voice Chat";
 }
 
-// Send Query to OpenAI API
+// Send Query to Backend API Proxy
 async function processMedicalQuery(query) {
     addMessage("Thinking...", "bot");
     try {
-        const chatCompletion = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                { role: "system", content: "You are a board-certified doctor with a Southern US accent. Give professional and empathetic medical advice." },
-                { role: "user", content: query }
-            ]
+        const response = await fetch(OPENAI_API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ prompt: query })
         });
 
-        const reply = chatCompletion.choices[0].message.content;
+        const data = await response.json();
+        const reply = data.reply;
         addMessage(reply, "bot");
-        await speakResponse(reply);
+        speakResponse(reply);
     } catch (error) {
         addMessage("Error contacting AI: " + error.message, "system");
     }
@@ -106,32 +99,13 @@ function addMessage(text, sender) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Speak Response
-async function speakResponse(text) {
-    try {
-        const speechFile = path.resolve("./speech.mp3");
-        const mp3 = await openai.audio.speech.create({
-            model: "gpt-4o-mini-tts",
-            voice: "coral",
-            input: text,
-            instructions: "Speak in a professional and empathetic tone.",
-        });
-
-        const buffer = Buffer.from(await mp3.arrayBuffer());
-        await fs.promises.writeFile(speechFile, buffer);
-
-        // Play the generated speech
-        const audio = new Audio(speechFile);
-        audio.play();
-    } catch (error) {
-        console.error("Text-to-speech error:", error);
-        // Fallback to browser's speech synthesis if OpenAI TTS fails
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "en-US";
-        utterance.rate = 0.9;
-        utterance.pitch = 0.8;
-        speechSynthesis.speak(utterance);
-    }
+// Speak Response (browser TTS fallback)
+function speakResponse(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;
+    speechSynthesis.speak(utterance);
 }
 
 // Visualize Sound Waves
