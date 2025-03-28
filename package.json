@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "npx http-server .",
-    "deploy": "git config user.email \"github-actions-bot@users.noreply.github.com\" && git config user.name \"GitHub Actions Bot\" && npx gh-pages -d .",
-    "predeploy": "npm run build",
-    "build": "echo 'Build process completed'"
+    "build": "echo 'Build process completed'",
+    "deploy": "npx gh-pages -d .",
+    "predeploy": "npm run build"
   },
   "keywords": ["medical", "ai", "voice-assistant"],
-  "author": "Your Name",
+  "author": "s90xt",
   "license": "MIT",
   "dependencies": {
     "openai": "^4.0.0"
