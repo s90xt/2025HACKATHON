@@ -1,10 +1,22 @@
 {
-  "name": "my-project",
+  "name": "mediguide-ai",
   "version": "1.0.0",
-  "description": "My OpenAI chatbot project",
-  "main": "script.js",
+  "description": "Advanced Clinical Voice Assistant",
+  "type": "module",
   "scripts": {
-    "start": "node script.js"
+    "start": "npx http-server .",
+    "deploy": "npx gh-pages -d .",
+    "predeploy": "npm run build",
+    "build": "echo 'Build process completed'"
   },
-  "dependencies": {}
+  "keywords": ["medical", "ai", "voice-assistant"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1",
+    "http-server": "^14.1.1"
+  }
 }
