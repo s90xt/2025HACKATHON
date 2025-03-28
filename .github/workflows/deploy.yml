@@ -1,23 +1,32 @@
-name: Deploy App
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
-      - main  # Runs when you push to main branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: npm install
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
 
-      - name: Set OpenAI API Key
-        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+    - name: Install dependencies
+      run: npm install
 
-      - name: Deploy to Hosting
-        run: npm run deploy  # Change this based on your hosting service
+    - name: Set Git identity
+      run: |
+        git config --global user.email "mia.napier8@gmail.com"
+        git config --global user.name "Mia Napier"
+
+    - name: Build and Deploy
+      run: npm run deploy
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
